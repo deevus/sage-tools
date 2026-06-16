@@ -1,0 +1,5 @@
+.{
+    .api_version = 1,
+    .name = "sage-tools-edit",
+    .entrypoint = "main.lua",
+}
