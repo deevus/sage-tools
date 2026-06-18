@@ -39,7 +39,7 @@ return {
     local schema = t.schema("edit")
     t.assert_equal("edit", schema.name)
     t.assert_equal("sage-tools-edit", schema.extension)
-    t.assert_equal("/sage-tools-edit:edit", schema.display_name)
+    t.assert_equal("edit", schema.display_name)
     t.assert_contains(schema.description, "exact-text replacements")
     t.assert_equal("path", schema.parameters.required[1])
     t.assert_equal("edits", schema.parameters.required[2])
