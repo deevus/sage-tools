@@ -41,15 +41,15 @@ local function optional_bool(value, default)
   return value
 end
 
-local function optional_int(value, default, max_allowed, label)
+local function optional_int(value, default, min_allowed, max_allowed, label)
   if value == nil then
     return { value = default, capped = false }
   end
   if type(value) ~= "number" or value ~= value or math.floor(value) ~= value then
     fail(label .. " must be an integer")
   end
-  if value < 0 then
-    fail(label .. " must be non-negative")
+  if value < min_allowed then
+    fail(label .. " must be at least " .. tostring(min_allowed))
   end
   local capped = value > max_allowed
   if capped then value = max_allowed end
@@ -102,7 +102,7 @@ end
 -- Build the rg argv from user inputs
 local function build_rg_argv(input, paths_validated)
   local rg_executable = validate_executable_name(input.rg_executable or "rg")
-  local context_info = optional_int(input.context_lines, DEFAULT_CONTEXT_LINES, MAX_CONTEXT_LINES, "context_lines")
+  local context_info = optional_int(input.context_lines, DEFAULT_CONTEXT_LINES, 0, MAX_CONTEXT_LINES, "context_lines")
   local context_lines = context_info.value
 
   local argv = {
@@ -318,13 +318,13 @@ sage.register_tool({
     local rg_executable = input.rg_executable or "rg"
 
     -- Validate and cap inputs
-    local max_results_info = optional_int(input.max_results, DEFAULT_MAX_RESULTS, MAX_RESULTS_LIMIT, "max_results")
+    local max_results_info = optional_int(input.max_results, DEFAULT_MAX_RESULTS, 1, MAX_RESULTS_LIMIT, "max_results")
     local max_results = max_results_info.value
-    local context_info = optional_int(input.context_lines, DEFAULT_CONTEXT_LINES, MAX_CONTEXT_LINES, "context_lines")
+    local context_info = optional_int(input.context_lines, DEFAULT_CONTEXT_LINES, 0, MAX_CONTEXT_LINES, "context_lines")
     local context_lines = context_info.value
-    local max_bytes_info = optional_int(input.max_output_bytes, DEFAULT_MAX_OUTPUT_BYTES, MAX_OUTPUT_BYTES_LIMIT, "max_output_bytes")
+    local max_bytes_info = optional_int(input.max_output_bytes, DEFAULT_MAX_OUTPUT_BYTES, 1, MAX_OUTPUT_BYTES_LIMIT, "max_output_bytes")
     local max_output_bytes = max_bytes_info.value
-    local timeout_info = optional_int(input.timeout_ms, DEFAULT_TIMEOUT_MS, MAX_TIMEOUT_MS, "timeout_ms")
+    local timeout_info = optional_int(input.timeout_ms, DEFAULT_TIMEOUT_MS, 1, MAX_TIMEOUT_MS, "timeout_ms")
     local timeout_ms = timeout_info.value
 
     require_string(input.pattern, "pattern")

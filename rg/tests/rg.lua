@@ -214,4 +214,28 @@ return {
     t.assert_contains(result.details.rows[1].path, "a.txt")
     cleanup()
   end,
+
+  ["max_results rejects zero"] = function()
+    local result = t.call_tool("rg", {
+      pattern = "test",
+      max_results = 0,
+    })
+    t.assert_tool_failure(result, "must be at least 1")
+  end,
+
+  ["max_output_bytes rejects zero"] = function()
+    local result = t.call_tool("rg", {
+      pattern = "test",
+      max_output_bytes = 0,
+    })
+    t.assert_tool_failure(result, "must be at least 1")
+  end,
+
+  ["timeout_ms rejects zero"] = function()
+    local result = t.call_tool("rg", {
+      pattern = "test",
+      timeout_ms = 0,
+    })
+    t.assert_tool_failure(result, "must be at least 1")
+  end,
 }
