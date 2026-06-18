@@ -76,9 +76,10 @@ Behavior:
 
 1. The search is **project-root confined**. Path arguments must be project-relative;
    absolute paths and `..` traversal are rejected.
-2. **Default excludes** are applied to dependency, generated, and cache directories:
-   `.git`, `.jj`, `.zig-cache`, `zig-out`, `node_modules`, `vendor`, `dist`,
-   `build`, `coverage`, `target`, `.next`, `.cache`.
+2. **Ripgrep's own ignore rules** (`.gitignore`, `.ignore`, `.rgignore`) apply
+   automatically. There are no sage-tools-level default excludes. Agents should
+   pass `exclude_globs` / `include_globs` for project-specific noise control
+   over directories like `node_modules`, `build` artifacts, or generated files.
 3. **Result limits** enforce caps on total rows (500), context lines (3), output
    bytes (65536), timeout (10000 ms), and per-line column width (240 chars).
    When any limit is hit, `details.meta` reports truncation metadata.

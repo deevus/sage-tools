@@ -87,24 +87,29 @@ return {
     cleanup()
   end,
 
-  ["default excludes hide node_modules matches"] = function()
-    -- Create fixtures directly in extension root so glob '!node_modules/**' matches.
-    -- Use narrow search paths to avoid matching test files.
-    local ext_root = t.path(".")
-    write_fixture(ext_root .. "/node_modules/sage_rg_exclude_test.txt", "sage-rg-exclude-target")
-    write_fixture(ext_root .. "/src/sage_rg_exclude_test.txt", "sage-rg-exclude-target")
-    local result = t.call_tool("rg", {
-      pattern = "sage-rg-exclude-target",
-      paths = { "node_modules", "src" },
+  ["tool does not impose default exclude globs; caller can exclude with exclude_globs"] = function()
+    -- Without a .gitignore or caller exclude_globs, sage-tools applies no excludes
+    -- of its own, so both fixture files match. Only caller-provided exclude_globs filters them.
+    cleanup()
+    write_fixture(fixture_path("excl/hidden.txt"), "exclude-me-please")
+    write_fixture(fixture_path("excl/visible.txt"), "exclude-me-please")
+    -- Search without excludes: both files match
+    local result_none = t.call_tool("rg", {
+      pattern = "exclude-me-please",
+      paths = { ".sage-tools-rg-test/excl" },
     })
-    -- Clean up before assertions
-    os.execute("rm -rf " .. q(ext_root .. "/node_modules"))
-    os.execute("rm -rf " .. q(ext_root .. "/src"))
-    t.assert_tool_success(result)
-    -- 'node_modules/' should be excluded by default; only 'src/' match should appear
-    t.assert_equal(1, result.details.meta.row_count)
-    t.assert_equal(1, #result.details.rows)
-    t.assert_contains(result.details.rows[1].path, "src/sage_rg_exclude_test.txt")
+    t.assert_tool_success(result_none)
+    t.assert_equal(2, result_none.details.meta.row_count)
+    -- Search with caller exclude_globs: hidden.txt excluded
+    local result_exclude = t.call_tool("rg", {
+      pattern = "exclude-me-please",
+      paths = { ".sage-tools-rg-test/excl" },
+      exclude_globs = { "hidden.txt" },
+    })
+    t.assert_tool_success(result_exclude)
+    t.assert_equal(1, result_exclude.details.meta.row_count)
+    t.assert_contains(result_exclude.details.rows[1].path, "visible.txt")
+    cleanup()
   end,
 
   ["parent-traversal path is rejected"] = function()
@@ -205,7 +210,7 @@ return {
     t.assert_tool_failure(result, "NUL")
   end,
 
-  ["meta includes pattern, searched_paths, and default_excludes"] = function()
+  ["meta includes pattern and searched_paths; no default_excludes field"] = function()
     cleanup()
     write_fixture(fixture_path("meta/hello.txt"), "meta test pattern\n")
     local result = t.call_tool("rg", {
@@ -215,8 +220,9 @@ return {
     t.assert_tool_success(result)
     t.assert_equal("meta test", result.details.meta.pattern)
     t.assert_equal(".sage-tools-rg-test/meta", result.details.meta.searched_paths[1])
-    if result.details.meta.default_excludes == nil or #result.details.meta.default_excludes == 0 then
-      t.fail("expected default_excludes to be present and non-empty")
+    -- default_excludes field should not be present after removal of tool-level defaults
+    if result.details.meta.default_excludes ~= nil then
+      t.fail("default_excludes must not be present in meta")
     end
     cleanup()
   end,

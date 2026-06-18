@@ -7,21 +7,6 @@ local MAX_OUTPUT_BYTES_LIMIT = 65536
 local DEFAULT_TIMEOUT_MS = 5000
 local MAX_TIMEOUT_MS = 10000
 local MAX_SUMMARY_CHARS = 240
-local DEFAULT_EXCLUDE_GLOBS = {
-  "!.git/**",
-  "!.jj/**",
-  "!.zig-cache/**",
-  "!zig-out/**",
-  "!node_modules/**",
-  "!vendor/**",
-  "!dist/**",
-  "!build/**",
-  "!coverage/**",
-  "!target/**",
-  "!.next/**",
-  "!.cache/**",
-}
-
 local function fail(message)
   error(message, 0)
 end
@@ -128,12 +113,6 @@ local function build_rg_argv(input, paths_validated)
   if context_lines > 0 then
     argv[#argv + 1] = "--context"
     argv[#argv + 1] = tostring(context_lines)
-  end
-
-  -- Default exclude globs
-  for _, glob in ipairs(DEFAULT_EXCLUDE_GLOBS) do
-    argv[#argv + 1] = "--glob"
-    argv[#argv + 1] = glob
   end
 
   -- Include globs
@@ -296,7 +275,7 @@ end
 
 sage.register_tool({
   name = "rg",
-  description = "Search the active project with ripgrep and return compact, limited match rows. This is the raw ripgrep escape hatch for unsupported patterns; searches are project-root confined and use safety limits/default excludes.",
+  description = "Search the active project with ripgrep and return compact, limited match rows. This is the raw ripgrep escape hatch for unsupported patterns; searches are project-root confined with safety limits. Ripgrep's own ignore rules (.gitignore, .ignore, .rgignore) apply automatically. Use include_globs and exclude_globs to add project-specific narrowing or noise reduction for directories like node_modules, build artifacts, or generated files.",
   parameters = {
     properties = {
       pattern = { type = "string", description = "Ripgrep search pattern. Interpreted as regex unless fixed_strings is true." },
@@ -416,7 +395,6 @@ sage.register_tool({
       exit_status = result.exit_status,
       row_count = #rows,
       total_summary_bytes = total_bytes,
-      default_excludes = DEFAULT_EXCLUDE_GLOBS,
     }
 
     -- Build compact content
