@@ -420,11 +420,24 @@ sage.register_tool({
     }
 
     -- Build compact content
+    -- Format: pattern line, optional mode/paths, blank line, then count/rows/truncation.
     local content_lines = {}
+    content_lines[#content_lines + 1] = 'pattern: "' .. input.pattern .. '"'
+    if input.fixed_strings then
+      content_lines[#content_lines + 1] = "mode: fixed string"
+    end
+    if paths_validated and #paths_validated > 0 then
+      content_lines[#content_lines + 1] = "paths: " .. table.concat(paths_validated, ", ")
+    end
+    content_lines[#content_lines + 1] = ""
     if #rows == 0 then
-      content_lines[#content_lines + 1] = "rg: no matches"
+      content_lines[#content_lines + 1] = "no matches"
     else
-      content_lines[#content_lines + 1] = "rg: " .. tostring(#rows) .. " rows"
+      if #rows == 1 then
+        content_lines[#content_lines + 1] = "1 row"
+      else
+        content_lines[#content_lines + 1] = tostring(#rows) .. " rows"
+      end
       for _, row in ipairs(rows) do
         local line_str = row.path .. ":" .. tostring(row.line)
         if row.column then
@@ -433,9 +446,9 @@ sage.register_tool({
         line_str = line_str .. ": " .. (row.summary or "")
         content_lines[#content_lines + 1] = line_str
       end
-      if truncated then
-        content_lines[#content_lines + 1] = "rg: results truncated"
-      end
+    end
+    if truncated then
+      content_lines[#content_lines + 1] = "results truncated"
     end
 
     return {

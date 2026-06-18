@@ -24,6 +24,12 @@ local function fixture_path(relative)
   return t.path(".sage-tools-rg-test/" .. relative)
 end
 
+local function assert_not_contains(haystack, needle, message)
+  if string.find(tostring(haystack), tostring(needle), 1, true) then
+    t.fail(message or "expected content to not contain " .. tostring(needle))
+  end
+end
+
 return {
   ["schema exposes rg tool with correct metadata and parameter types"] = function()
     local schema = t.schema("rg")
@@ -52,7 +58,15 @@ return {
     t.assert_equal(1, row.column)
     t.assert_equal("match", row.kind)
     t.assert_contains(row.summary, "alpha")
-    t.assert_contains(result.content, "rg: 1 rows")
+    -- Content begins with pattern line
+    t.assert_contains(result.content, 'pattern: "alpha"')
+    -- Content includes paths line (non-default paths)
+    t.assert_contains(result.content, "paths:")
+    -- Content uses unprefixed count
+    t.assert_contains(result.content, "1 row")
+    assert_not_contains(result.content, "1 rows", "singular must be '1 row', not '1 rows'")
+    -- Content must NOT contain old "rg:" prefix
+    assert_not_contains(result.content, "rg: 1")
     cleanup()
   end,
 
@@ -66,7 +80,10 @@ return {
     t.assert_tool_success(result)
     t.assert_equal(0, result.details.meta.row_count)
     t.assert_equal(0, #result.details.rows)
-    t.assert_contains(result.content, "rg: no matches")
+    t.assert_contains(result.content, 'pattern: "zzz_nonexistent_zzz"')
+    t.assert_contains(result.content, "paths:")
+    t.assert_contains(result.content, "no matches")
+    assert_not_contains(result.content, "rg: no matches")
     cleanup()
   end,
 
@@ -124,7 +141,8 @@ return {
     t.assert_equal(1, result.details.meta.row_count)
     t.assert_equal(1, #result.details.rows)
     t.assert_equal(true, result.details.meta.truncated_by_results)
-    t.assert_contains(result.content, "rg: results truncated")
+    t.assert_contains(result.content, "results truncated")
+    assert_not_contains(result.content, "rg: results truncated")
     cleanup()
   end,
 
@@ -141,6 +159,9 @@ return {
     t.assert_tool_success(result)
     t.assert_equal(0, result.details.meta.row_count)
     t.assert_equal(true, result.details.meta.truncated_by_output_bytes)
+    -- results truncated must appear even with 0 rows
+    t.assert_contains(result.content, "results truncated")
+    assert_not_contains(result.content, "rg: results truncated")
     cleanup()
   end,
 
@@ -197,6 +218,86 @@ return {
     if result.details.meta.default_excludes == nil or #result.details.meta.default_excludes == 0 then
       t.fail("expected default_excludes to be present and non-empty")
     end
+    cleanup()
+  end,
+
+  ["content format includes pattern, paths, and unprefixed count and truncation"] = function()
+    cleanup()
+    write_fixture(fixture_path("fmt/a.txt"), "apple\nbanana\ncherry\n")
+    write_fixture(fixture_path("fmt/b.txt"), "apple\ndate\nelderberry\n")
+    local result = t.call_tool("rg", {
+      pattern = "apple",
+      paths = { ".sage-tools-rg-test/fmt" },
+      max_results = 1,
+    })
+    t.assert_tool_success(result)
+    -- Pattern line
+    t.assert_contains(result.content, 'pattern: "apple"')
+    -- Paths line (non-default paths)
+    t.assert_contains(result.content, "paths:")
+    -- Count line (unprefixed)
+    t.assert_contains(result.content, "1 row")
+    assert_not_contains(result.content, "1 rows", "singular must be '1 row', not '1 rows'")
+    -- Truncation line (unprefixed)
+    t.assert_contains(result.content, "results truncated")
+    -- No "rg:" prefix anywhere
+    assert_not_contains(result.content, "rg: 1")
+    assert_not_contains(result.content, "rg: results truncated")
+    -- Content is the first line (pattern line), not blank
+    t.assert_contains(result.content, 'pattern: "apple"')
+    -- Verify structure: pattern line, paths line, blank line, count line
+    local blank_separator = string.find(result.content, "\n\n")
+    local paths_pos = string.find(result.content, "paths:")
+    if blank_separator == nil then t.fail("must have blank line separator") end
+    if paths_pos == nil then t.fail("must have paths line") end
+    if not (paths_pos < blank_separator) then t.fail("paths must appear before blank separator") end
+    cleanup()
+  end,
+
+  ["content format omits mode and paths when not applicable"] = function()
+    cleanup()
+    write_fixture(fixture_path("fmt_default/a.txt"), "default search content\n")
+    local result = t.call_tool("rg", {
+      pattern = "default search",
+      -- No paths, defaults to .
+    })
+    t.assert_tool_success(result)
+    -- Pattern line present
+    t.assert_contains(result.content, 'pattern: "default search"')
+    -- Mode line absent (no fixed_strings)
+    assert_not_contains(result.content, "mode:")
+    -- Paths line absent (defaults to .)
+    assert_not_contains(result.content, "paths:")
+    cleanup()
+  end,
+
+  ["content format uses plural N rows for multiple results"] = function()
+    cleanup()
+    write_fixture(fixture_path("plural/a.txt"), "plurals-test\n")
+    write_fixture(fixture_path("plural/b.txt"), "plurals-test\n")
+    local result = t.call_tool("rg", {
+      pattern = "plurals-test",
+      paths = { ".sage-tools-rg-test/plural" },
+    })
+    t.assert_tool_success(result)
+    t.assert_equal(2, result.details.meta.row_count)
+    t.assert_contains(result.content, "2 rows")
+    cleanup()
+  end,
+
+  ["content format includes mode when fixed_strings is true"] = function()
+    cleanup()
+    write_fixture(fixture_path("fmt_fixed/a.txt"), "fixed.strings content\n")
+    local result = t.call_tool("rg", {
+      pattern = "fixed.strings",
+      fixed_strings = true,
+      paths = { ".sage-tools-rg-test/fmt_fixed" },
+    })
+    t.assert_tool_success(result)
+    t.assert_contains(result.content, 'pattern: "fixed.strings"')
+    t.assert_contains(result.content, "mode: fixed string")
+    t.assert_contains(result.content, "1 row")
+    assert_not_contains(result.content, "1 rows", "singular must be '1 row', not '1 rows'")
     cleanup()
   end,
 
