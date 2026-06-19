@@ -1,7 +1,7 @@
-local c = require("constants")
-local v = require("validation")
-local r = require("rg_process")
-local o = require("output")
+local c = require("support.constants")
+local v = require("support.validation")
+local r = require("support.rg_process")
+local o = require("support.output")
 
 -- Build the rg argv from user inputs
 local function build_rg_argv(input, paths_validated)

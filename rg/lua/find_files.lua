@@ -1,8 +1,8 @@
-local c = require("constants")
-local v = require("validation")
-local p = require("paths")
-local r = require("rg_process")
-local o = require("output")
+local c = require("support.constants")
+local v = require("support.validation")
+local p = require("support.paths")
+local r = require("support.rg_process")
+local o = require("support.output")
 
 -- Helper functions for find_files
 

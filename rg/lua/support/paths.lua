@@ -1,4 +1,4 @@
-local validation = require("validation")
+local validation = require("support.validation")
 
 local function append_paths(argv, paths_validated)
   if paths_validated and #paths_validated > 0 then

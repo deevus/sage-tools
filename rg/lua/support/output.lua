@@ -1,4 +1,4 @@
-local constants = require("constants")
+local constants = require("support.constants")
 
 local function shorten(text)
   -- Trim trailing newlines/carriage returns

@@ -1,4 +1,4 @@
-local validation = require("validation")
+local validation = require("support.validation")
 
 local function add_globs(argv, include_globs, exclude_globs)
   if include_globs then
