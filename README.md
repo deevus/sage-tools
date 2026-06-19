@@ -5,30 +5,6 @@
 Sage already provides native `read` and `write` tools, so this pack intentionally
 focuses on exact-text editing.
 
-## Layout
-
-```text
-sage-tools/
-  pack.zon
-  edit/
-    manifest.zon
-    main.lua
-    tests/edit.lua
-  rg/
-    manifest.zon
-    main.lua
-    lua/
-      constants.lua
-      validation.lua
-      paths.lua
-      rg_process.lua
-      output.lua
-      rg.lua
-      find_files.lua
-    tests/rg.lua
-    tests/find_files.lua
-```
-
 ## `edit`
 
 `edit` applies one or more exact-text replacements to a single project file.
