@@ -45,9 +45,14 @@ local function array_of_strings(value, label)
   return value
 end
 
-local function validate_project_relative_path(path)
+local function validate_path(path)
   if path == "" then fail("path must not be empty") end
   if path:find("\0", 1, true) then fail("path must not contain NUL bytes") end
+  return path
+end
+
+local function validate_project_relative_path(path)
+  validate_path(path)
   if path:sub(1, 1) == "/" then fail("path must not be absolute") end
   if path:match("^[A-Za-z]:") then fail("path must not be a Windows absolute path") end
   if path:match("^\\") then fail("path must not be a Windows absolute path") end
@@ -72,6 +77,7 @@ return {
   optional_bool = optional_bool,
   optional_int = optional_int,
   array_of_strings = array_of_strings,
+  validate_path = validate_path,
   validate_project_relative_path = validate_project_relative_path,
   validate_executable_name = validate_executable_name,
 }

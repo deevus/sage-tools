@@ -103,6 +103,13 @@ Behavior:
 5. Result limits enforce shared caps on rows, context lines, output bytes, timeout, and summary width. Truncation metadata is reported in `details.meta`.
 6. When there are no matches, rows is empty and the tool succeeds.
 
+## Development layout
+
+Shared Lua code lives under the pack-level `lua/` directory and is loaded from
+member extensions and their tests with `ctx.pack.require(...)`. Keep reusable
+runtime helpers in `lua/support/`; keep extension-specific tool logic inside the
+member extension directories.
+
 ## Install
 
 ```sh

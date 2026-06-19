@@ -1,36 +1,26 @@
 local t = sage.test
-
-local function q(value)
-  return "'" .. string.gsub(value, "'", "'\"'\"'") .. "'"
-end
+local h = ctx.pack.require("support.test_helpers")
 
 local function cleanup()
   local test_dir = t.path(".sage-tools-rg-test")
-  os.execute("rm -rf " .. q(test_dir))
+  os.execute("rm -rf " .. h.q(test_dir))
 end
 
-local function dirname(path)
-  return path:match("^(.+)/[^/]+$") or "."
-end
-
-local function write_fixture(path, content)
-  os.execute("mkdir -p " .. q(dirname(path)))
-  local handle = assert(io.open(path, "w"))
-  handle:write(content)
-  handle:close()
-end
+local write_fixture = h.write_fixture
 
 local function fixture_path(relative)
   return t.path(".sage-tools-rg-test/" .. relative)
 end
 
 local function assert_not_contains(haystack, needle, message)
-  if string.find(tostring(haystack), tostring(needle), 1, true) then
-    t.fail(message or "expected content to not contain " .. tostring(needle))
-  end
+  h.assert_not_contains(t, haystack, needle, message)
 end
 
 return {
+  ["pack-level test helper is available to rg tests"] = function()
+    t.assert_equal("sage-tools-test-helper", h.label)
+  end,
+
   ["schema exposes rg tool with correct metadata and parameter types"] = function()
     local schema = t.schema("rg")
     t.assert_equal("rg", schema.name)

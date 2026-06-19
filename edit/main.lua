@@ -1,25 +1,9 @@
+local v = ctx.pack.require("support.validation")
+
 local CONTEXT_LINES = 3
-
-local function fail(message)
-  error(message, 0)
-end
-
-local function require_string(value, label)
-  if type(value) ~= "string" then
-    fail(label .. " must be a string")
-  end
-  return value
-end
-
-local function validate_path(path)
-  if path == "" then
-    fail("path must not be empty")
-  end
-  if path:find("\0", 1, true) then
-    fail("path must not contain NUL bytes")
-  end
-  return path
-end
+local fail = v.fail
+local require_string = v.require_string
+local validate_path = v.validate_path
 
 local function directory_name(path)
   local index = path:match("^.*()[/\\]")

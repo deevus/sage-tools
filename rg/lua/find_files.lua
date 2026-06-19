@@ -1,8 +1,8 @@
-local c = require("support.constants")
-local v = require("support.validation")
-local p = require("support.paths")
-local r = require("support.rg_process")
-local o = require("support.output")
+local c = ctx.pack.require("support.constants")
+local v = ctx.pack.require("support.validation")
+local p = ctx.pack.require("support.paths")
+local r = ctx.pack.require("support.rg_process")
+local o = ctx.pack.require("support.output")
 
 -- Helper functions for find_files
 

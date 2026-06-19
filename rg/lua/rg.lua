@@ -1,7 +1,7 @@
-local c = require("support.constants")
-local v = require("support.validation")
-local r = require("support.rg_process")
-local o = require("support.output")
+local c = ctx.pack.require("support.constants")
+local v = ctx.pack.require("support.validation")
+local r = ctx.pack.require("support.rg_process")
+local o = ctx.pack.require("support.output")
 
 -- Build the rg argv from user inputs
 local function build_rg_argv(input, paths_validated)

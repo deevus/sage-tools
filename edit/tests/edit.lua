@@ -1,40 +1,20 @@
 local t = sage.test
-
-local function q(value)
-  return "'" .. string.gsub(value, "'", "'\"'\"'") .. "'"
-end
+local h = ctx.pack.require("support.test_helpers")
 
 local function cleanup()
-  os.execute("rm -rf " .. q(".sage-tools-edit-test"))
-  os.execute("rm -rf " .. q("../.sage-tools-edit-parent-test"))
+  os.execute("rm -rf " .. h.q(".sage-tools-edit-test"))
+  os.execute("rm -rf " .. h.q("../.sage-tools-edit-parent-test"))
 end
 
-local function dirname(path)
-  return path:match("^(.+)/[^/]+$") or "."
-end
-
-local function current_dir()
-  local handle = assert(io.popen("pwd"))
-  local path = assert(handle:read("*l"))
-  handle:close()
-  return path
-end
-
-local function write_fixture(path, content)
-  os.execute("mkdir -p " .. q(dirname(path)))
-  local handle = assert(io.open(path, "w"))
-  handle:write(content)
-  handle:close()
-end
-
-local function read_file(path)
-  local handle = assert(io.open(path, "r"))
-  local content = handle:read("*a")
-  handle:close()
-  return content
-end
+local current_dir = h.current_dir
+local write_fixture = h.write_fixture
+local read_file = h.read_file
 
 return {
+  ["pack-level test helper is available to edit tests"] = function()
+    t.assert_equal("sage-tools-test-helper", h.label)
+  end,
+
   ["schema supports snake_case multi edits for one file"] = function()
     local schema = t.schema("edit")
     t.assert_equal("edit", schema.name)

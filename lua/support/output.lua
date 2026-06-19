@@ -1,4 +1,4 @@
-local constants = require("support.constants")
+local constants = ctx.pack.require("support.constants")
 
 local function shorten(text)
   -- Trim trailing newlines/carriage returns
