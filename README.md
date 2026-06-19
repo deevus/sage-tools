@@ -17,9 +17,10 @@ sage-tools/
   rg/
     manifest.zon
     main.lua
-    helpers.lua
-    rg.lua
-    find_files.lua
+    lua/
+      helpers.lua
+      rg.lua
+      find_files.lua
     tests/rg.lua
     tests/find_files.lua
 ```
