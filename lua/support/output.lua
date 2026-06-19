@@ -9,6 +9,13 @@ local function shorten(text)
   return trimmed
 end
 
+local function pluralize(count, singular, plural)
+  if count == 1 then
+    return tostring(count) .. " " .. singular
+  end
+  return tostring(count) .. " " .. (plural or (singular .. "s"))
+end
+
 -- Parse one line of rg output
 local function parse_rg_line(line)
   -- Tab-separated: path\tline\t[column]\tsummary
@@ -129,6 +136,7 @@ end
 
 return {
   shorten = shorten,
+  pluralize = pluralize,
   parse_output = parse_output,
   append_limited_row = append_limited_row,
 }

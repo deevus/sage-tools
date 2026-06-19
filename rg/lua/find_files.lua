@@ -213,10 +213,8 @@ return {
     content_lines[#content_lines + 1] = ""
     if #rows == 0 then
       content_lines[#content_lines + 1] = "no matches"
-    elseif #rows == 1 then
-      content_lines[#content_lines + 1] = "1 row"
     else
-      content_lines[#content_lines + 1] = tostring(#rows) .. " rows"
+      content_lines[#content_lines + 1] = o.pluralize(#rows, "row")
     end
     for _, row in ipairs(rows) do
       local line_str = row.path
