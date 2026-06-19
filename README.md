@@ -106,7 +106,7 @@ Behavior:
 ## Install
 
 ```sh
-sage extensions install ssh://git@forgejo.tail9a847c.ts.net/sh/sage-tools.git
+sage extensions install https://github.com/deevus/sage-tools.git
 ```
 
 ## Test
