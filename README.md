@@ -18,7 +18,11 @@ sage-tools/
     manifest.zon
     main.lua
     lua/
-      helpers.lua
+      constants.lua
+      validation.lua
+      paths.lua
+      rg_process.lua
+      output.lua
       rg.lua
       find_files.lua
     tests/rg.lua
