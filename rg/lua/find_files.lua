@@ -1,5 +1,4 @@
-return function(h)
-
+local h = require("helpers")
 local DEFAULT_MAX_RESULTS = h.DEFAULT_MAX_RESULTS
 local MAX_RESULTS_LIMIT = h.MAX_RESULTS_LIMIT
 local DEFAULT_CONTEXT_LINES = h.DEFAULT_CONTEXT_LINES
@@ -261,5 +260,3 @@ sage.register_tool({
     }
   end,
 })
-
-end

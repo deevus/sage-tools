@@ -1,4 +1,2 @@
-local helpers = require("helpers")
-
-require("rg")(helpers)
-require("find_files")(helpers)
+require("rg")
+require("find_files")
