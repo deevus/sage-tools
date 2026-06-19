@@ -1,6 +1,6 @@
 # sage-tools
 
-`sage-tools` is a Sage extension pack. For now it publishes two tools: `edit` and `rg`.
+`sage-tools` is a Sage extension pack. For now it publishes three tools: `edit`, `rg`, and `find_files`.
 
 Sage already provides native `read` and `write` tools, so this pack intentionally
 focuses on exact-text editing.
@@ -90,6 +90,33 @@ Behavior:
 5. Returns compact match rows (`path`, `line`, `column`, `summary`, `kind`) in
    `details.rows` and metadata in `details.meta`. When there are no matches,
    rows is empty and the tool succeeds.
+
+## `find_files`
+
+`find_files` finds likely relevant project files by filename and/or content hints without dumping broad shell output.
+
+Schema:
+
+- `filename_hints` (`array` of `string`, optional): case-insensitive filename or path fragments.
+- `content_hints` (`array` of `string`, optional): content patterns. Regex by default, literal when `fixed_strings` is true.
+- `paths` (`array` of `string`, optional): project-relative files or directories to search. Defaults to the project root.
+- `include_globs` / `exclude_globs` (`array` of `string`, optional): additional ripgrep glob patterns.
+- `fixed_strings` (`boolean`, optional): treat content hints as literal text.
+- `case_sensitive` (`boolean`, optional): when false, pass `--ignore-case` for content hints. Filename hint matching is always case-insensitive.
+- `context_lines` (`integer`, optional): context lines before/after content matches. Capped at 3.
+- `max_results` (`integer`, optional): maximum rows to return across filename and content matches. Capped at 500.
+- `max_output_bytes` (`integer`, optional): maximum total bytes of row summaries. Capped at 65536.
+- `timeout_ms` (`integer`, optional): ripgrep timeout. Capped at 10000 ms.
+- `rg_executable` (`string`, optional): executable override for testing or custom PATH installs; path separators and traversal are rejected.
+
+Behavior:
+
+1. Searches are project-root confined. Path arguments must be project-relative; absolute paths and `..` traversal are rejected.
+2. The tool follows `rg` exclude behavior: ripgrep's own ignore rules apply automatically, and sage-tools does not add default exclude globs. Use `exclude_globs` for caller-specific noise reduction.
+3. Filename hints are matched case-insensitively against paths returned by `rg --files`.
+4. Content hints are searched with ripgrep and return line/column metadata when available.
+5. Result limits enforce shared caps on rows, context lines, output bytes, timeout, and summary width. Truncation metadata is reported in `details.meta`.
+6. When there are no matches, rows is empty and the tool succeeds.
 
 ## Install
 
