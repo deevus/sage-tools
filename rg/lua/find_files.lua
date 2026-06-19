@@ -1,31 +1,8 @@
-local constants = require("constants")
-local validation = require("validation")
-local paths = require("paths")
-local rg_process = require("rg_process")
-local output = require("output")
-
-local DEFAULT_MAX_RESULTS = constants.DEFAULT_MAX_RESULTS
-local MAX_RESULTS_LIMIT = constants.MAX_RESULTS_LIMIT
-local DEFAULT_CONTEXT_LINES = constants.DEFAULT_CONTEXT_LINES
-local MAX_CONTEXT_LINES = constants.MAX_CONTEXT_LINES
-local DEFAULT_MAX_OUTPUT_BYTES = constants.DEFAULT_MAX_OUTPUT_BYTES
-local MAX_OUTPUT_BYTES_LIMIT = constants.MAX_OUTPUT_BYTES_LIMIT
-local DEFAULT_TIMEOUT_MS = constants.DEFAULT_TIMEOUT_MS
-local MAX_TIMEOUT_MS = constants.MAX_TIMEOUT_MS
-local MAX_SUMMARY_CHARS = constants.MAX_SUMMARY_CHARS
-local optional_bool = validation.optional_bool
-local optional_int = validation.optional_int
-local array_of_strings = validation.array_of_strings
-local validate_executable_name = validation.validate_executable_name
-local shorten = output.shorten
-local add_globs = rg_process.add_globs
-local check_rg_available = rg_process.check_rg_available
-local parse_output = output.parse_output
-local append_paths = paths.append_paths
-local validate_paths = paths.validate_paths
-local searched_paths_for = paths.searched_paths_for
-local append_limited_row = output.append_limited_row
-local execute_rg = rg_process.execute_rg
+local c = require("constants")
+local v = require("validation")
+local p = require("paths")
+local r = require("rg_process")
+local o = require("output")
 
 -- Helper functions for find_files
 
@@ -66,9 +43,9 @@ local function parse_files_output(stdout, filename_hints, rows, state, max_resul
         local row = {
           path = path,
           kind = "filename",
-          summary = shorten("filename matched: " .. table.concat(matched, ", ")),
+          summary = o.shorten("filename matched: " .. table.concat(matched, ", ")),
         }
-        if not append_limited_row(rows, row, state, max_results, max_output_bytes) then
+        if not o.append_limited_row(rows, row, state, max_results, max_output_bytes) then
           break
         end
       end
@@ -77,19 +54,19 @@ local function parse_files_output(stdout, filename_hints, rows, state, max_resul
 end
 
 local function build_files_argv(input, paths_validated, include_globs, exclude_globs)
-  local rg_executable = validate_executable_name(input.rg_executable or "rg")
+  local rg_executable = v.validate_executable_name(input.rg_executable or "rg")
   local argv = {
     rg_executable,
     "--files",
     "--color", "never",
   }
-  add_globs(argv, include_globs, exclude_globs)
-  append_paths(argv, paths_validated)
+  r.add_globs(argv, include_globs, exclude_globs)
+  p.append_paths(argv, paths_validated)
   return argv
 end
 
 local function build_content_argv(input, pattern, paths_validated, include_globs, exclude_globs, context_lines)
-  local rg_executable = validate_executable_name(input.rg_executable or "rg")
+  local rg_executable = v.validate_executable_name(input.rg_executable or "rg")
   local argv = {
     rg_executable,
     "--line-number",
@@ -98,23 +75,23 @@ local function build_content_argv(input, pattern, paths_validated, include_globs
     "--color", "never",
     "--field-match-separator", "\t",
     "--field-context-separator", "\t",
-    "--max-columns", tostring(MAX_SUMMARY_CHARS),
+    "--max-columns", tostring(c.MAX_SUMMARY_CHARS),
     "--max-columns-preview",
   }
   if input.fixed_strings then
     argv[#argv + 1] = "--fixed-strings"
   end
-  if optional_bool(input.case_sensitive, true) == false then
+  if v.optional_bool(input.case_sensitive, true) == false then
     argv[#argv + 1] = "--ignore-case"
   end
   if context_lines > 0 then
     argv[#argv + 1] = "--context"
     argv[#argv + 1] = tostring(context_lines)
   end
-  add_globs(argv, include_globs, exclude_globs)
+  r.add_globs(argv, include_globs, exclude_globs)
   argv[#argv + 1] = "--"
   argv[#argv + 1] = pattern
-  append_paths(argv, paths_validated)
+  p.append_paths(argv, paths_validated)
   return argv
 end
 
@@ -140,24 +117,24 @@ sage.register_tool({
   },
   handler = function(callback_ctx)
     local input = callback_ctx.input
-    local filename_hints = array_of_strings(input.filename_hints, "filename_hints") or {}
-    local content_hints = array_of_strings(input.content_hints, "content_hints") or {}
-    local include_globs = array_of_strings(input.include_globs, "include_globs")
-    local exclude_globs = array_of_strings(input.exclude_globs, "exclude_globs")
+    local filename_hints = v.array_of_strings(input.filename_hints, "filename_hints") or {}
+    local content_hints = v.array_of_strings(input.content_hints, "content_hints") or {}
+    local include_globs = v.array_of_strings(input.include_globs, "include_globs")
+    local exclude_globs = v.array_of_strings(input.exclude_globs, "exclude_globs")
 
-    local max_results_info = optional_int(input.max_results, DEFAULT_MAX_RESULTS, 1, MAX_RESULTS_LIMIT, "max_results")
+    local max_results_info = v.optional_int(input.max_results, c.DEFAULT_MAX_RESULTS, 1, c.MAX_RESULTS_LIMIT, "max_results")
     local max_results = max_results_info.value
-    local context_info = optional_int(input.context_lines, DEFAULT_CONTEXT_LINES, 0, MAX_CONTEXT_LINES, "context_lines")
+    local context_info = v.optional_int(input.context_lines, c.DEFAULT_CONTEXT_LINES, 0, c.MAX_CONTEXT_LINES, "context_lines")
     local context_lines = context_info.value
-    local max_bytes_info = optional_int(input.max_output_bytes, DEFAULT_MAX_OUTPUT_BYTES, 1, MAX_OUTPUT_BYTES_LIMIT, "max_output_bytes")
+    local max_bytes_info = v.optional_int(input.max_output_bytes, c.DEFAULT_MAX_OUTPUT_BYTES, 1, c.MAX_OUTPUT_BYTES_LIMIT, "max_output_bytes")
     local max_output_bytes = max_bytes_info.value
-    local timeout_info = optional_int(input.timeout_ms, DEFAULT_TIMEOUT_MS, 1, MAX_TIMEOUT_MS, "timeout_ms")
+    local timeout_info = v.optional_int(input.timeout_ms, c.DEFAULT_TIMEOUT_MS, 1, c.MAX_TIMEOUT_MS, "timeout_ms")
     local timeout_ms = timeout_info.value
 
     local rg_executable = input.rg_executable or "rg"
-    validate_executable_name(rg_executable)
-    local paths_validated = validate_paths(input)
-    check_rg_available(rg_executable)
+    v.validate_executable_name(rg_executable)
+    local paths_validated = p.validate_paths(input)
+    r.check_rg_available(rg_executable)
 
     local rows = {}
     local state = {
@@ -170,7 +147,7 @@ sage.register_tool({
 
     if has_any_hints(filename_hints, content_hints) then
       if #filename_hints > 0 then
-        local files_result, files_stdout = execute_rg(build_files_argv(input, paths_validated, include_globs, exclude_globs), timeout_ms)
+        local files_result, files_stdout = r.execute_rg(build_files_argv(input, paths_validated, include_globs, exclude_globs), timeout_ms)
         state.stdout_limited = state.stdout_limited or files_result.stdout_limited == true
         state.stdout_total_bytes = state.stdout_total_bytes + (files_result.stdout_total_bytes or 0)
         parse_files_output(files_stdout, filename_hints, rows, state, max_results, max_output_bytes)
@@ -179,10 +156,10 @@ sage.register_tool({
       if not state.truncated_by_results and not state.truncated_by_output_bytes then
         for _, hint in ipairs(content_hints) do
           if hint ~= "" then
-            local content_result, content_stdout = execute_rg(build_content_argv(input, hint, paths_validated, include_globs, exclude_globs, context_lines), timeout_ms)
+            local content_result, content_stdout = r.execute_rg(build_content_argv(input, hint, paths_validated, include_globs, exclude_globs, context_lines), timeout_ms)
             state.stdout_limited = state.stdout_limited or content_result.stdout_limited == true
             state.stdout_total_bytes = state.stdout_total_bytes + (content_result.stdout_total_bytes or 0)
-            local parsed_rows, truncated_by_results, truncated_by_output_bytes, parsed_bytes = parse_output(content_stdout, max_results - #rows, max_output_bytes - state.total_summary_bytes, context_lines)
+            local parsed_rows, truncated_by_results, truncated_by_output_bytes, parsed_bytes = o.parse_output(content_stdout, max_results - #rows, max_output_bytes - state.total_summary_bytes, context_lines)
             state.truncated_by_results = state.truncated_by_results or truncated_by_results
             state.truncated_by_output_bytes = state.truncated_by_output_bytes or truncated_by_output_bytes
             state.total_summary_bytes = state.total_summary_bytes + parsed_bytes
@@ -202,7 +179,7 @@ sage.register_tool({
     local meta = {
       filename_hints = filename_hints,
       content_hints = content_hints,
-      searched_paths = searched_paths_for(paths_validated),
+      searched_paths = p.searched_paths_for(paths_validated),
       max_results = max_results,
       max_results_capped = max_results_info.capped,
       context_lines = context_lines,

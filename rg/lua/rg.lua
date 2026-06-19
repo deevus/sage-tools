@@ -1,32 +1,12 @@
-local constants = require("constants")
-local validation = require("validation")
-local rg_process = require("rg_process")
-local output = require("output")
-
-local DEFAULT_MAX_RESULTS = constants.DEFAULT_MAX_RESULTS
-local MAX_RESULTS_LIMIT = constants.MAX_RESULTS_LIMIT
-local DEFAULT_CONTEXT_LINES = constants.DEFAULT_CONTEXT_LINES
-local MAX_CONTEXT_LINES = constants.MAX_CONTEXT_LINES
-local DEFAULT_MAX_OUTPUT_BYTES = constants.DEFAULT_MAX_OUTPUT_BYTES
-local MAX_OUTPUT_BYTES_LIMIT = constants.MAX_OUTPUT_BYTES_LIMIT
-local DEFAULT_TIMEOUT_MS = constants.DEFAULT_TIMEOUT_MS
-local MAX_TIMEOUT_MS = constants.MAX_TIMEOUT_MS
-local MAX_SUMMARY_CHARS = constants.MAX_SUMMARY_CHARS
-local fail = validation.fail
-local require_string = validation.require_string
-local optional_bool = validation.optional_bool
-local optional_int = validation.optional_int
-local array_of_strings = validation.array_of_strings
-local validate_project_relative_path = validation.validate_project_relative_path
-local validate_executable_name = validation.validate_executable_name
-local add_globs = rg_process.add_globs
-local check_rg_available = rg_process.check_rg_available
-local parse_output = output.parse_output
+local c = require("constants")
+local v = require("validation")
+local r = require("rg_process")
+local o = require("output")
 
 -- Build the rg argv from user inputs
 local function build_rg_argv(input, paths_validated)
-  local rg_executable = validate_executable_name(input.rg_executable or "rg")
-  local context_info = optional_int(input.context_lines, DEFAULT_CONTEXT_LINES, 0, MAX_CONTEXT_LINES, "context_lines")
+  local rg_executable = v.validate_executable_name(input.rg_executable or "rg")
+  local context_info = v.optional_int(input.context_lines, c.DEFAULT_CONTEXT_LINES, 0, c.MAX_CONTEXT_LINES, "context_lines")
   local context_lines = context_info.value
 
   local argv = {
@@ -37,7 +17,7 @@ local function build_rg_argv(input, paths_validated)
     "--color", "never",
     "--field-match-separator", "\t",
     "--field-context-separator", "\t",
-    "--max-columns", tostring(MAX_SUMMARY_CHARS),
+    "--max-columns", tostring(c.MAX_SUMMARY_CHARS),
     "--max-columns-preview",
   }
 
@@ -45,7 +25,7 @@ local function build_rg_argv(input, paths_validated)
     argv[#argv + 1] = "--fixed-strings"
   end
 
-  if optional_bool(input.case_sensitive, true) == false then
+  if v.optional_bool(input.case_sensitive, true) == false then
     argv[#argv + 1] = "--ignore-case"
   end
 
@@ -54,9 +34,9 @@ local function build_rg_argv(input, paths_validated)
     argv[#argv + 1] = tostring(context_lines)
   end
 
-  local include_globs = array_of_strings(input.include_globs, "include_globs")
-  local exclude_globs = array_of_strings(input.exclude_globs, "exclude_globs")
-  add_globs(argv, include_globs, exclude_globs)
+  local include_globs = v.array_of_strings(input.include_globs, "include_globs")
+  local exclude_globs = v.array_of_strings(input.exclude_globs, "exclude_globs")
+  r.add_globs(argv, include_globs, exclude_globs)
 
   -- Pattern and paths
   argv[#argv + 1] = "--"
@@ -97,32 +77,32 @@ sage.register_tool({
     local rg_executable = input.rg_executable or "rg"
 
     -- Validate and cap inputs
-    local max_results_info = optional_int(input.max_results, DEFAULT_MAX_RESULTS, 1, MAX_RESULTS_LIMIT, "max_results")
+    local max_results_info = v.optional_int(input.max_results, c.DEFAULT_MAX_RESULTS, 1, c.MAX_RESULTS_LIMIT, "max_results")
     local max_results = max_results_info.value
-    local context_info = optional_int(input.context_lines, DEFAULT_CONTEXT_LINES, 0, MAX_CONTEXT_LINES, "context_lines")
+    local context_info = v.optional_int(input.context_lines, c.DEFAULT_CONTEXT_LINES, 0, c.MAX_CONTEXT_LINES, "context_lines")
     local context_lines = context_info.value
-    local max_bytes_info = optional_int(input.max_output_bytes, DEFAULT_MAX_OUTPUT_BYTES, 1, MAX_OUTPUT_BYTES_LIMIT, "max_output_bytes")
+    local max_bytes_info = v.optional_int(input.max_output_bytes, c.DEFAULT_MAX_OUTPUT_BYTES, 1, c.MAX_OUTPUT_BYTES_LIMIT, "max_output_bytes")
     local max_output_bytes = max_bytes_info.value
-    local timeout_info = optional_int(input.timeout_ms, DEFAULT_TIMEOUT_MS, 1, MAX_TIMEOUT_MS, "timeout_ms")
+    local timeout_info = v.optional_int(input.timeout_ms, c.DEFAULT_TIMEOUT_MS, 1, c.MAX_TIMEOUT_MS, "timeout_ms")
     local timeout_ms = timeout_info.value
 
-    require_string(input.pattern, "pattern")
+    v.require_string(input.pattern, "pattern")
 
     -- Validate paths
-    local paths_raw = array_of_strings(input.paths, "paths")
+    local paths_raw = v.array_of_strings(input.paths, "paths")
     local paths_validated = {}
     if paths_raw then
       for _, p in ipairs(paths_raw) do
-        validate_project_relative_path(p)
+        v.validate_project_relative_path(p)
         paths_validated[#paths_validated + 1] = p
       end
     end
 
     -- Validate executable name
-    validate_executable_name(rg_executable)
+    v.validate_executable_name(rg_executable)
 
     -- Check rg is available
-    check_rg_available(rg_executable)
+    r.check_rg_available(rg_executable)
 
     -- Build argv
     local argv, effective_executable, effective_context = build_rg_argv(input, paths_validated)
@@ -146,16 +126,16 @@ sage.register_tool({
         stdout = ""
       else
         -- Process error (e.g., output limit) even with exit code 1
-        fail("rg failed: " .. tostring(result.error))
+        v.fail("rg failed: " .. tostring(result.error))
       end
     else
       -- Any other failure
       local stderr = result.stderr or ""
       local err_msg = result.error or ("exit status " .. tostring(result.exit_status))
       if stderr ~= "" then
-        fail("rg failed: " .. tostring(err_msg) .. " - " .. stderr)
+        v.fail("rg failed: " .. tostring(err_msg) .. " - " .. stderr)
       else
-        fail("rg failed: " .. tostring(err_msg))
+        v.fail("rg failed: " .. tostring(err_msg))
       end
     end
 
@@ -169,7 +149,7 @@ sage.register_tool({
       searched_paths = { "." }
     end
 
-    local rows, truncated_by_results, truncated_by_output_bytes, total_bytes = parse_output(
+    local rows, truncated_by_results, truncated_by_output_bytes, total_bytes = o.parse_output(
       stdout, max_results, max_output_bytes, context_lines
     )
 
