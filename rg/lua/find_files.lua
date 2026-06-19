@@ -96,7 +96,7 @@ local function build_content_argv(input, pattern, paths_validated, include_globs
 end
 
 
-sage.register_tool({
+return {
   name = "find_files",
   description = "Find likely relevant project files by filename and/or content hints. Uses ripgrep, remains project-root confined, follows ripgrep ignore rules, and returns compact file-oriented rows with shared safety limits.",
   parameters = {
@@ -241,4 +241,4 @@ sage.register_tool({
       },
     }
   end,
-})
+}

@@ -1,2 +1,2 @@
-require("rg")
-require("find_files")
+sage.register_tool(require("rg"))
+sage.register_tool(require("find_files"))

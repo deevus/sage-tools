@@ -53,7 +53,7 @@ local function build_rg_argv(input, paths_validated)
 end
 
 
-sage.register_tool({
+return {
   name = "rg",
   description = "Search the active project with ripgrep and return compact, limited match rows. This is the raw ripgrep escape hatch for unsupported patterns; searches are project-root confined with safety limits. Ripgrep's own ignore rules (.gitignore, .ignore, .rgignore) apply automatically. Use include_globs and exclude_globs to add project-specific narrowing or noise reduction for directories like node_modules, build artifacts, or generated files.",
   parameters = {
@@ -217,4 +217,4 @@ sage.register_tool({
       },
     }
   end,
-})
+}
