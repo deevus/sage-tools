@@ -10,6 +10,14 @@ local DEFAULT_SYSTEM_PROMPT = table.concat({
   "Do not modify files. Prefer reading and analysis over action.",
 }, "\n")
 
+local BUILTIN_CHILD_TOOLS = {
+  read = true,
+  bash = true,
+  apply_patch = true,
+  write = true,
+  create_temp_output = true,
+}
+
 local function sanitize_label(label)
   local sanitized = tostring(label or "scout"):gsub("[^%w._-]", "-")
   if sanitized == "" then return "scout" end
@@ -45,6 +53,13 @@ local function normalize_child(input)
   end
   if extension_mode == "dirs" and #extension_dirs == 0 then
     fail("child.extensions.dirs must contain at least one directory when mode is dirs")
+  end
+  if extension_mode == "none" then
+    for _, tool in ipairs(tools) do
+      if not BUILTIN_CHILD_TOOLS[tool] then
+        fail("child.extensions.mode cannot be none when child.tools includes extension tool " .. tool)
+      end
+    end
   end
 
   if child.provider ~= nil and type(child.provider) ~= "string" then fail("child.provider must be a string") end
@@ -201,6 +216,13 @@ local function full_output(callback_ctx, label, stdout, stderr)
   return { uri = nil, inline = text }
 end
 
+local function compact_stderr(stderr)
+  if type(stderr) ~= "string" or stderr == "" then return nil end
+  local first_line = stderr:match("^([^\r\n]+)") or stderr
+  if #first_line > 500 then return first_line:sub(1, 500) .. "..." end
+  return first_line
+end
+
 local function compact_content(label, outcome, parsed)
   local lines = {
     "subagent " .. label .. ": " .. outcome,
@@ -241,7 +263,7 @@ local function run(callback_ctx)
 
   local parsed = parse_jsonl_events(process.stdout or "")
   if not parsed.failure and not process.ok then
-    parsed.failure = { code = process.error or "process_failed", message = "child process failed" }
+    parsed.failure = { code = process.error or "process_failed", message = compact_stderr(process.stderr) or "child process failed" }
   end
   if not parsed.failure and not parsed.run_completed then
     parsed.failure = { code = "missing_run_completed", message = "child did not emit run.completed" }

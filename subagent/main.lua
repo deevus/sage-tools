@@ -31,7 +31,7 @@ sage.register_tool({
           },
           model = {
             type = "string",
-            description = "Optional child model id passed with --model.",
+            description = "Optional child model id or provider/model ref passed with --model, for example provider/model.",
           },
           tools = {
             type = "array",

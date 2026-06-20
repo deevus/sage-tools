@@ -162,15 +162,21 @@ Schema:
   - `sage_executable` (`string`, optional): Sage executable path or command.
     Defaults to `sage`.
   - `provider` / `model` (`string`, optional): passed as `--provider` and
-    `--model`.
+    `--model`. Sage model refs such as `<provider>/<model>` should be passed as
+    `model = "provider/model"`.
   - `tools` (`array` of `string`, optional): repeated `--allow-tool` values.
-    Defaults to `{ "read" }`.
+    Defaults to `{ "read" }`. If `extensions.mode` is `none`, tools must be
+    Sage built-ins; extension tools such as `rg` or `find_files` require
+    `extensions.mode = "default"` or `"dirs"`.
   - `timeout_ms` (`integer`, optional): child process timeout. Defaults to
     `120000`.
   - `extensions` (`object`, optional): extension policy.
     - `mode`: `none` (default), `default`, or `dirs`.
     - `dirs`: directories passed as repeated `--extension-dir` when mode is
       `dirs`.
+    - `none` is rejected when `tools` contains non-built-in extension tools,
+      because the child Sage run would disable the extensions that provide those
+      tools.
 - `debug.events` (`boolean`, optional): include parsed structured child events
   in `details.events`.
 

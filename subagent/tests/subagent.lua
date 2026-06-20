@@ -62,6 +62,11 @@ local missing_run_completed_script = [[#!/bin/sh
 echo '{"type":"assistant.completed","text":"unfinished answer"}'
 ]]
 
+local stderr_only_failure_script = [[#!/bin/sh
+printf 'authentication failed for child provider\n' >&2
+exit 9
+]]
+
 return {
   ["schema exposes hybrid task, child, and debug fields"] = function()
     local schema = t.schema("subagent")
@@ -72,6 +77,7 @@ return {
     t.assert_equal("string", schema.parameters.properties.label.type)
     t.assert_equal("string", schema.parameters.properties.system_prompt.type)
     t.assert_equal("object", schema.parameters.properties.child.type)
+    t.assert_contains(schema.parameters.properties.child.properties.model.description, "provider/model")
     t.assert_equal("object", schema.parameters.properties.debug.type)
     t.assert_equal("array", schema.parameters.properties.child.properties.tools.type)
     t.assert_equal("object", schema.parameters.properties.child.properties.extensions.type)
@@ -180,6 +186,36 @@ return {
       child = { sage_executable = child, timeout_ms = 1.5 },
     })
     t.assert_tool_failure(result, "child.timeout_ms must be a positive integer")
+    cleanup()
+  end,
+
+  ["process failure summary includes useful child stderr"] = function()
+    cleanup()
+    local child = write_script("stderr-only-failure-child.sh", stderr_only_failure_script)
+    local result = t.call_tool("subagent", {
+      task = "Inspect the code.",
+      child = { sage_executable = child },
+    })
+    t.assert_tool_success(result)
+    t.assert_equal("failure", result.details.outcome)
+    t.assert_contains(result.content, "authentication failed for child provider")
+    t.assert_contains(result.details.failure.message, "authentication failed for child provider")
+    cleanup()
+  end,
+
+  ["extension tools require child extensions to be enabled"] = function()
+    cleanup()
+    local child = write_script("invalid-policy-child.sh", success_script)
+    local rg_result = t.call_tool("subagent", {
+      task = "Inspect the code.",
+      child = { sage_executable = child, tools = { "read", "rg" }, extensions = { mode = "none" } },
+    })
+    t.assert_tool_failure(rg_result, "child.extensions.mode cannot be none when child.tools includes extension tool rg")
+    local find_files_result = t.call_tool("subagent", {
+      task = "Inspect the code.",
+      child = { sage_executable = child, tools = { "find_files" }, extensions = { mode = "none" } },
+    })
+    t.assert_tool_failure(find_files_result, "child.extensions.mode cannot be none when child.tools includes extension tool find_files")
     cleanup()
   end,
 }
