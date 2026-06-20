@@ -1,9 +1,10 @@
 # sage-tools
 
-`sage-tools` is a Sage extension pack publishing focused tools such as `edit`, `rg`, `find_files`, and `find_references`.
+`sage-tools` is a Sage extension pack publishing focused tools such as `edit`, `rg`, `find_files`, `find_references`, and `subagent`.
 
-Sage already provides native `read` and `write` tools, so this pack intentionally
-focuses on exact-text editing.
+Sage already provides native `read` and `write` tools, so the editing/search
+members focus on exact-text editing and project discovery. The `subagent` member
+adds a narrow blocking child-Sage scout run for orchestration use cases.
 
 ## `edit`
 
@@ -143,6 +144,60 @@ Behavior:
 5. Result limits enforce shared caps on rows, context lines, output bytes, timeout, and summary width. Truncation metadata is reported in `details.meta`.
 6. When there are no matches, rows is empty and the tool succeeds.
 
+## `subagent`
+
+`subagent` runs one child Sage prompt synchronously and returns a compact summary
+plus the final child answer. V1 defaults to a read-only scout policy: the child
+is invoked with `--allow-tool read`, `--no-extensions`, prompt/system-prompt
+files, `--structured-output`, and `--no-streaming`.
+
+Schema:
+
+- `task` (`string`, required): child prompt task.
+- `label` (`string`, optional): label used in summaries and temp-output names.
+  Defaults to `scout`.
+- `system_prompt` (`string`, optional): child system prompt. Defaults to a
+  read-only scout role.
+- `child` (`object`, optional): child runtime policy.
+  - `sage_executable` (`string`, optional): Sage executable path or command.
+    Defaults to `sage`.
+  - `provider` / `model` (`string`, optional): passed as `--provider` and
+    `--model`.
+  - `tools` (`array` of `string`, optional): repeated `--allow-tool` values.
+    Defaults to `{ "read" }`.
+  - `timeout_ms` (`integer`, optional): child process timeout. Defaults to
+    `120000`.
+  - `extensions` (`object`, optional): extension policy.
+    - `mode`: `none` (default), `default`, or `dirs`.
+    - `dirs`: directories passed as repeated `--extension-dir` when mode is
+      `dirs`.
+- `debug.events` (`boolean`, optional): include parsed structured child events
+  in `details.events`.
+
+Behavior:
+
+1. Writes the child task and system prompt to session-owned temp-output files via
+   Sage's `ctx.temp_output.create(...)` API.
+2. Invokes child Sage with `sage.execute(...)`, prompt file inputs, and
+   structured JSONL output enabled.
+3. Parses structured child events for the final assistant answer, run failure,
+   and tool counts.
+4. Stores full child stdout/stderr in temp output when available and returns its
+   URI in `details.full_output_uri`; otherwise returns an inline fallback.
+5. Returns compact model-visible content containing the run outcome, tool counts,
+   and final child answer or failure message.
+
+Details include `outcome`, `final_answer`, `failure`, `tool_counts`,
+`child_policy`, process metadata, prompt/system-prompt temp URIs, and full-output
+reference. V1 is intentionally blocking and does not support background
+lifecycle, fanout, chains, persistent role files, session forking,
+supervisor/intercom channels, or live child progress while blocked.
+
+The original blockers for this tool were Sage nested schemas and temp-output
+APIs. They are resolved in Sage by nested map-style schemas and
+`ctx.temp_output.create/read`; this tool does not use the removed experimental
+`ctx.call_tool` API.
+
 ## Development layout
 
 Shared Lua code lives under the pack-level `lua/` directory and is loaded from
@@ -163,6 +218,7 @@ From a Sage source checkout:
 ```sh
 zig build run -- extensions test /path/to/sage-tools/edit
 zig build run -- extensions test /path/to/sage-tools/rg
+zig build run -- extensions test /path/to/sage-tools/subagent
 ```
 
 With an installed `sage` binary:
@@ -170,4 +226,5 @@ With an installed `sage` binary:
 ```sh
 sage extensions test /path/to/sage-tools/edit
 sage extensions test /path/to/sage-tools/rg
+sage extensions test /path/to/sage-tools/subagent
 ```
